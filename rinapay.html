@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rinaペイ</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .app-container {
+            width: 100%;
+            max-width: 375px;
+            background-color: white;
+            border-radius: 24px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+            color: white;
+            padding: 24px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .balance-box {
+            background-color: #fff3f3;
+            margin: 20px;
+            padding: 20px;
+            border-radius: 16px;
+            text-align: center;
+            border: 1px solid #ffcccc;
+        }
+        .balance-label {
+            font-size: 14px;
+            color: #666;
+        }
+        .balance-amount {
+            font-size: 32px;
+            font-weight: bold;
+            color: #ff4757;
+            margin-top: 8px;
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #eee;
+        }
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: bold;
+            color: #666;
+        }
+        .tab.active {
+            color: #ff4757;
+            border-bottom: 3px solid #ff4757;
+        }
+        .content {
+            padding: 20px;
+            display: none;
+        }
+        .content.active {
+            display: block;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 12px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        button.btn-reset {
+            background-color: #747d8c;
+        }
+        .msg {
+            margin-top: 12px;
+            font-size: 14px;
+            text-align: center;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="header">
+        <h1>Rinaペイ</h1>
+    </div>
+
+    <div class="balance-box">
+        <div class="balance-label">現在の残高</div>
+        <div class="balance-amount" id="balanceDisplay">0円</div>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('charge')">チャージ</div>
+        <div class="tab" onclick="switchTab('pay')">お支払い</div>
+        <div class="tab" onclick="switchTab('reset')">設定・リセット</div>
+    </div>
+
+    <div id="charge-content" class="content active">
+        <input type="number" id="chargeAmount" placeholder="チャージする金額を入力">
+        <button onclick="handleCharge()">チャージする</button>
+        <div id="chargeMsg" class="msg"></div>
+    </div>
+
+    <div id="pay-content" class="content">
+        <input type="number" id="payAmount" placeholder="支払う金額を入力">
+        <button onclick="handlePay()">支払う</button>
+        <div id="payMsg" class="msg"></div>
+    </div>
+
+    <div id="reset-content" class="content">
+        <p style="color: #666; font-size: 14px; text-align: center; margin-bottom: 20px;">
+            これまでの残高をすべて消去し、0円にリセットします。
+        </p>
+        <button class="btn-reset" onclick="handleReset()">残高をリセットする</button>
+        <div id="resetMsg" class="msg"></div>
+    </div>
+</div>
+
+<script>
+    // アプリ起動時にLocalStorage（記憶装置）から残高を読み込む
+    // 保存されていない場合は 0 円からスタート
+    let balance = parseInt(localStorage.getItem('rinaPayBalance')) || 0;
+
+    // 初回の残高表示を更新
+    updateDisplay();
+
+    // 画面の金額表示と、データを記憶(保存)する関数
+    function updateDisplay() {
+        document.getElementById('balanceDisplay').innerText = balance.toLocaleString() + "円";
+        localStorage.setItem('rinaPayBalance', balance);
+    }
+
+    // タブを切り替える関数
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.content').forEach(content => content.classList.remove('active'));
+
+        if(tabName === 'charge') {
+            document.querySelectorAll('.tab')[0].classList.add('active');
+            document.getElementById('charge-content').classList.add('active');
+        } else if(tabName === 'pay') {
+            document.querySelectorAll('.tab')[1].classList.add('active');
+            document.getElementById('pay-content').classList.add('active');
+        } else if(tabName === 'reset') {
+            document.querySelectorAll('.tab')[2].classList.add('active');
+            document.getElementById('reset-content').classList.add('active');
+        }
+        // メッセージの初期化
+        clearMessages();
+    }
+
+    // チャージ処理
+    function handleCharge() {
+        const input = document.getElementById('chargeAmount');
+        const amount = parseInt(input.value);
+        const msg = document.getElementById('chargeMsg');
+
+        if (!amount || amount <= 0) {
+            msg.style.color = 'red';
+            msg.innerText = '1円以上を入力してください。';
+            return;
+        }
+
+        balance += amount;
+        updateDisplay();
+        
+        msg.style.color = 'green';
+        msg.innerText = amount.toLocaleString() + '円チャージしました！';
+        input.value = ''; // 入力欄を空に
+    }
+
+    // お支払い処理
+    function handlePay() {
+        const input = document.getElementById('payAmount');
+        const amount = parseInt(input.value);
+        const msg = document.getElementById('payMsg');
+
+        if (!amount || amount <= 0) {
+            msg.style.color = 'red';
+            msg.innerText = '1円以上を入力してください。';
+            return;
+        }
+
+        if (balance < amount) {
+            msg.style.color = 'red';
+            msg.innerText = '残高が足りません！';
+        } else {
+            balance -= amount;
+            updateDisplay();
+            msg.style.color = 'green';
+            msg.innerText = amount.toLocaleString() + '円支払いました。';
+            input.value = ''; // 入力欄を空に
+        }
+    }
+
+    // リセット処理
+    function handleReset() {
+        if (confirm("本当に残高をリセットしますか？")) {
+            balance = 0;
+            updateDisplay();
+            const msg = document.getElementById('resetMsg');
+            msg.style.color = 'blue';
+            msg.innerText = '残高をリセットしました。';
+        }
+    }
+
+    function clearMessages() {
+        document.getElementById('chargeMsg').innerText = '';
+        document.getElementById('payMsg').innerText = '';
+        document.getElementById('resetMsg').innerText = '';
+    }
+</script>
+
+</body>
+</html>
